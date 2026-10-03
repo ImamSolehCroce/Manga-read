@@ -1,0 +1,6 @@
+{
+  "name": "MangaStory",
+  "description": "Ubah panel komik/manga menjadi cerita teks bersambung menggunakan AI Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
