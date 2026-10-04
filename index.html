@@ -22,22 +22,16 @@
         </div>
     </div>
 
-    <!-- Konfigurasi API & Model -->
+    <!-- Konfigurasi API -->
     <div class="bg-slate-800 p-5 rounded-xl mb-6 border border-slate-700 shadow-lg">
         <h2 class="text-lime-400 font-bold text-sm tracking-wider mb-4 flex items-center gap-2">
             <span>🔑</span> KONFIGURASI SISTEM
         </h2>
         
-        <div class="mb-4">
+        <div>
             <label class="block text-xs font-semibold text-slate-400 mb-2">GEMINI API KEY (TUMPUK/MULTI-KEY)</label>
             <textarea id="apiKeys" rows="3" placeholder="Masukkan API Key di sini...&#10;Jika ada lebih dari satu, pisahkan dengan menekan Enter (baris baru)" class="w-full bg-slate-900 text-white border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-lime-500"></textarea>
-            <p class="text-[11px] text-slate-500 mt-1">*Sistem akan otomatis pindah ke Key berikutnya jika Key sebelumnya limit/error.</p>
-        </div>
-
-        <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-2">MODEL AI</label>
-            <input type="text" id="modelName" value="gemini-1.5-flash" class="w-full bg-slate-900 text-white border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-lime-500">
-            <p class="text-[11px] text-slate-500 mt-1">*Ubah ke gemini-1.5-pro atau model terbaru lainnya jika diperlukan.</p>
+            <p class="text-[11px] text-slate-500 mt-2">*Sistem akan otomatis mencari model AI yang cocok dan pindah ke Key berikutnya jika limit/error.</p>
         </div>
     </div>
 
@@ -78,7 +72,7 @@
             <span>📚</span> HASIL CERITA
         </h2>
         <div id="loading" class="hidden text-center text-slate-400 text-sm p-4">
-            Menganalisis panel dan memutar API Key (jika perlu)... Mohon tunggu.
+            Mencari model AI yang cocok dan memproses panel... Mohon tunggu.
         </div>
         <div id="resultText" class="text-slate-200 text-sm leading-relaxed space-y-4"></div>
     </div>
@@ -99,7 +93,7 @@
                 const base64Data = await convertToBase64(file);
                 imagesData.push({
                     mimeType: file.type,
-                    data: base64Data.split(',')[1] // Ambil data mentahnya saja
+                    data: base64Data.split(',')[1] 
                 });
                 renderImages();
             }
@@ -136,19 +130,18 @@
 
         async function generateStory() {
             const apiKeysInput = document.getElementById('apiKeys').value.trim();
-            const modelName = document.getElementById('modelName').value.trim();
             const btn = document.getElementById('generateBtn');
             const outputSection = document.getElementById('outputSection');
             const resultText = document.getElementById('resultText');
             const loading = document.getElementById('loading');
 
-            // Validasi
             if (!apiKeysInput) return alert("API Key tidak boleh kosong!");
-            if (!modelName) return alert("Model AI tidak boleh kosong!");
             if (imagesData.length === 0) return alert("Masukkan setidaknya 1 gambar manga!");
 
-            // Pisahkan API Key berdasarkan baris (Enter)
             const keys = apiKeysInput.split('\n').map(k => k.trim()).filter(k => k !== '');
+            
+            // Daftar model Gemini yang dicoba secara otomatis (khusus untuk baca gambar)
+            const autoModels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro-vision'];
 
             btn.disabled = true;
             btn.innerHTML = "MEMPROSES...";
@@ -156,7 +149,6 @@
             resultText.innerHTML = '';
             loading.classList.remove('hidden');
 
-            // Siapkan instruksi untuk AI
             const promptText = `Kamu adalah pencerita manga yang handal. Saya memberikan beberapa panel gambar komik/manga berurutan. 
             Tugasmu:
             1. Baca dan pahami alur gambar dari KANAN ke KIRI.
@@ -170,45 +162,50 @@
             let success = false;
             let lastErrorMessage = "";
 
-            // LOGIK PENUMPUKAN API KEY (AUTO-FALLBACK)
-            for (let i = 0; i < keys.length; i++) {
+            // DOUBLE LOOP: Coba setiap API Key, dan di dalam setiap Key, coba semua Model
+            outerLoop: for (let i = 0; i < keys.length; i++) {
                 const currentKey = keys[i];
                 console.log(`Mencoba API Key ke-${i + 1}...`);
                 
-                try {
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${currentKey}`;
-                    
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: contents })
-                    });
+                for (let j = 0; j < autoModels.length; j++) {
+                    const currentModel = autoModels[j];
+                    console.log(`Mencoba model ${currentModel}...`);
 
-                    const data = await response.json();
+                    try {
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
+                        
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: contents })
+                        });
 
-                    if (!response.ok) {
-                        throw new Error(data.error?.message || "Terjadi kesalahan pada API ini.");
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.error?.message || `Gagal di model ${currentModel}`);
+                        }
+
+                        // Jika sukses, tampilkan cerita dan hentikan semua loop
+                        const story = data.candidates[0].content.parts[0].text;
+                        resultText.innerHTML = story.replace(/\n/g, '<br><br>');
+                        success = true;
+                        break outerLoop; // Keluar dari loop API Key dan loop Model sekaligus
+
+                    } catch (error) {
+                        console.warn(`Error pada Key ${i + 1} - Model ${currentModel}:`, error.message);
+                        lastErrorMessage = error.message;
+                        // Gagal di model ini? Lanjut otomatis ke model berikutnya di dalam loop.
                     }
-
-                    // Jika sukses
-                    const story = data.candidates[0].content.parts[0].text;
-                    resultText.innerHTML = story.replace(/\n/g, '<br><br>');
-                    success = true;
-                    break; // Hentikan loop (tidak perlu mencoba key berikutnya)
-
-                } catch (error) {
-                    console.warn(`API Key ke-${i + 1} gagal:`, error.message);
-                    lastErrorMessage = error.message;
-                    // Loop otomatis lanjut ke i berikutnya (API Key selanjutnya)
                 }
             }
 
-            // Jika semua API Key di dalam kotak gagal
+            // Jika semua API Key dan semua Model gagal
             if (!success) {
                 resultText.innerHTML = `<div class="p-3 bg-red-900/50 text-red-400 border border-red-800 rounded-lg text-sm">
-                    <strong>Gagal! Semua API Key limit/error.</strong><br>
+                    <strong>Gagal! Semua kombinasi API Key dan Model AI gagal diproses.</strong><br>
                     Pesan error terakhir: <em>${lastErrorMessage}</em><br>
-                    Pastikan Model AI yang diketik benar dan setidaknya ada 1 API Key yang masih memiliki kuota.
+                    Pastikan API Key Anda aktif dan masih memiliki limit kuota harian.
                 </div>`;
             }
 
