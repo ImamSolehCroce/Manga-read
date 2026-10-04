@@ -13,7 +13,6 @@
 </head>
 <body class="p-4 md:p-8 max-w-3xl mx-auto">
 
-    <!-- Header -->
     <div class="flex items-center gap-3 mb-8">
         <div class="bg-lime-500 text-slate-900 p-2 rounded-lg font-bold text-xl">📖</div>
         <div>
@@ -33,11 +32,7 @@
             <button onclick="addApiKey()" class="bg-lime-500 hover:bg-lime-400 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm transition-all">Tambah</button>
         </div>
         
-        <!-- Daftar API Key -->
-        <ul id="apiKeyList" class="space-y-2 mt-4">
-            <!-- List API Key akan dirender di sini via JavaScript -->
-        </ul>
-        <p class="text-[11px] text-slate-500 mt-3">*Tersimpan otomatis di browser. Sistem akan otomatis pindah ke Key & Model berikutnya jika limit/error.</p>
+        <ul id="apiKeyList" class="space-y-2 mt-4"></ul>
     </div>
 
     <!-- Konfigurasi Cerita -->
@@ -54,66 +49,45 @@
         </div>
 
         <label class="block text-xs font-semibold text-slate-400 mb-2">PANEL GAMBAR KOMIK</label>
-        <div id="imageContainer" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <!-- Gambar akan muncul di sini -->
-        </div>
+        <div id="imageContainer" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4"></div>
         
         <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-all">
             <span class="text-2xl">+</span>
             <span class="text-sm">Tambah Gambar</span>
             <input type="file" id="imageInput" accept="image/*" class="hidden" multiple onchange="handleImageUpload(event)">
         </label>
-        <p class="text-[11px] text-slate-500 mt-2 text-center">* AI diatur membaca berurutan, panel kanan ke kiri.</p>
     </div>
 
-    <!-- Tombol Generate -->
     <button id="generateBtn" onclick="generateStory()" class="w-full bg-lime-500 hover:bg-lime-400 text-slate-900 font-bold text-sm tracking-wide p-4 rounded-xl shadow-lg transition-all mb-6">
         🪄 GENERATE CERITA SEKARANG
     </button>
 
-    <!-- Hasil Output Saat Ini -->
     <div id="outputSection" class="hidden bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg mb-6">
         <h2 class="text-lime-400 font-bold text-sm tracking-wider mb-4 flex items-center gap-2">
             <span>✨</span> HASIL CERITA TERBARU
         </h2>
         <div id="loading" class="hidden text-center text-slate-400 text-sm p-4">
-            Mencari model AI yang cocok dan memproses panel... Mohon tunggu.
+            Memproses ke server Google... Mohon tunggu.
         </div>
-        <div id="resultText" class="text-slate-200 text-sm leading-relaxed space-y-4"></div>
+        <div id="resultText" class="text-slate-200 text-sm leading-relaxed space-y-4 break-words"></div>
     </div>
 
-    <!-- Riwayat (History) -->
     <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg mb-10">
         <h2 class="text-lime-400 font-bold text-sm tracking-wider mb-4 flex items-center gap-2">
             <span>📚</span> RIWAYAT CERITA
         </h2>
-        <div id="historyList" class="space-y-4">
-            <!-- Riwayat akan dirender di sini via JavaScript -->
-        </div>
+        <div id="historyList" class="space-y-4"></div>
     </div>
 
     <script>
-        // --- STATE MANAGEMENT ---
         let currentMood = 'Senang';
         let imagesData = [];
         let apiKeys = [];
         let storyHistory = [];
 
-        // Daftar Lengkap Semua Model Gemini 
-        const allGeminiModels = [
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest',
-            'gemini-2.0-flash-exp', // Model eksperimental terbaru
-            'gemini-exp-1114',
-            'gemini-exp-1121',
-            'gemini-exp-1206',
-            'gemini-1.0-pro-vision-latest', // Versi lawas
-            'gemini-pro-vision' // Versi paling lawas
-        ];
+        // HANYA FOKUS PADA MODEL TERBARU
+        const allGeminiModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
 
-        // --- INIT & LOCAL STORAGE ---
         window.onload = () => {
             loadData();
             renderApiKeys();
@@ -123,7 +97,6 @@
         function loadData() {
             const savedKeys = localStorage.getItem('mangaApiKeys');
             if (savedKeys) apiKeys = JSON.parse(savedKeys);
-
             const savedHistory = localStorage.getItem('mangaHistory');
             if (savedHistory) storyHistory = JSON.parse(savedHistory);
         }
@@ -133,16 +106,14 @@
             localStorage.setItem('mangaHistory', JSON.stringify(storyHistory));
         }
 
-        // --- API KEY MANAGEMENT ---
         function addApiKey() {
             const input = document.getElementById('apiKeyInput');
             const key = input.value.trim();
             if (!key) return;
-            
             apiKeys.push(key);
             saveData();
             renderApiKeys();
-            input.value = ''; // Kosongkan input
+            input.value = '';
         }
 
         function removeApiKey(index) {
@@ -158,11 +129,9 @@
                 list.innerHTML = '<li class="text-xs text-slate-500 italic">Belum ada API Key yang tersimpan.</li>';
                 return;
             }
-
             apiKeys.forEach((key, index) => {
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700 text-sm";
-                // Masking: Tampilkan awal & akhir key agar terlihat rapi
                 const maskedKey = key.substring(0, 8) + '••••••••' + key.substring(key.length - 4);
                 li.innerHTML = `
                     <span class="text-slate-300 font-mono">🔑 API Key ${index + 1} <span class="text-slate-500 text-xs ml-2">(${maskedKey})</span></span>
@@ -172,7 +141,6 @@
             });
         }
 
-        // --- HISTORY MANAGEMENT ---
         function addHistory(storyText, usedModel) {
             const newItem = {
                 id: Date.now(),
@@ -182,7 +150,7 @@
                 imagesCount: imagesData.length,
                 text: storyText
             };
-            storyHistory.unshift(newItem); // Taruh di paling atas
+            storyHistory.unshift(newItem);
             saveData();
             renderHistory();
         }
@@ -196,25 +164,17 @@
         function renderHistory() {
             const list = document.getElementById('historyList');
             list.innerHTML = '';
-            
             if (storyHistory.length === 0) {
                 list.innerHTML = '<div class="text-xs text-slate-500 italic text-center py-4">Riwayat cerita masih kosong.</div>';
                 return;
             }
-
             storyHistory.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "bg-slate-900 p-4 rounded-lg border border-slate-700 relative";
                 div.innerHTML = `
                     <button onclick="deleteHistory(${item.id})" class="absolute top-3 right-3 text-red-400 hover:text-red-300 font-bold p-1 text-sm">Hapus</button>
                     <div class="flex gap-2 text-xs text-slate-500 mb-3 border-b border-slate-800 pb-2">
-                        <span>🕒 ${item.date}</span>
-                        <span>|</span>
-                        <span>🎭 ${item.mood}</span>
-                        <span>|</span>
-                        <span>🖼️ ${item.imagesCount} Gambar</span>
-                        <span>|</span>
-                        <span class="text-lime-500/70">⚙️ ${item.model}</span>
+                        <span>🕒 ${item.date}</span><span>|</span><span>🎭 ${item.mood}</span><span>|</span><span>🖼️ ${item.imagesCount} Gambar</span><span>|</span><span class="text-lime-500/70">⚙️ ${item.model}</span>
                     </div>
                     <div class="text-slate-300 text-sm leading-relaxed">${item.text.replace(/\n/g, '<br><br>')}</div>
                 `;
@@ -222,7 +182,6 @@
             });
         }
 
-        // --- UI & IMAGE HANDLING ---
         function setMood(mood, element) {
             currentMood = mood;
             document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
@@ -234,7 +193,7 @@
             for (let file of files) {
                 const base64Data = await convertToBase64(file);
                 imagesData.push({
-                    mimeType: file.type,
+                    mimeType: file.type || 'image/jpeg', // Fallback jika format tidak terbaca
                     data: base64Data.split(',')[1] 
                 });
                 renderImages();
@@ -270,7 +229,6 @@
             renderImages();
         }
 
-        // --- GENERATE STORY LOGIC ---
         async function generateStory() {
             const btn = document.getElementById('generateBtn');
             const outputSection = document.getElementById('outputSection');
@@ -297,21 +255,15 @@
             ];
 
             let success = false;
-            let lastErrorMessage = "";
+            let firstErrorMessage = "";
             let successfulModel = "";
 
-            // DOUBLE LOOP: Coba setiap API Key, lalu coba semua Model dari daftar lengkap
             outerLoop: for (let i = 0; i < apiKeys.length; i++) {
                 const currentKey = apiKeys[i];
-                console.log(`Mencoba API Key ke-${i + 1}...`);
-                
                 for (let j = 0; j < allGeminiModels.length; j++) {
                     const currentModel = allGeminiModels[j];
-                    console.log(`Mencoba model: ${currentModel}...`);
-
                     try {
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${currentKey}`;
-                        
                         const response = await fetch(apiUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -324,30 +276,29 @@
                             throw new Error(data.error?.message || `Gagal di model ${currentModel}`);
                         }
 
-                        // JIKA SUKSES
                         const story = data.candidates[0].content.parts[0].text;
                         resultText.innerHTML = story.replace(/\n/g, '<br><br>');
                         successfulModel = currentModel;
                         success = true;
                         
-                        // Simpan ke riwayat
                         addHistory(story, successfulModel);
-                        
-                        break outerLoop; // Keluar dari semua loop pencarian
+                        break outerLoop; 
 
                     } catch (error) {
-                        console.warn(`Error pada Key ${i + 1} - Model ${currentModel}:`, error.message);
-                        lastErrorMessage = error.message;
+                        // TANGKAP ERROR DARI MODEL PERTAMA (TERBARU)
+                        if (!firstErrorMessage) {
+                            firstErrorMessage = `Model ${currentModel} error: ${error.message}`;
+                        }
                     }
                 }
             }
 
-            // Jika benar-benar gagal semua kombinasi
             if (!success) {
                 resultText.innerHTML = `<div class="p-3 bg-red-900/50 text-red-400 border border-red-800 rounded-lg text-sm">
-                    <strong>Gagal! Semua kombinasi API Key dan Model AI ditolak oleh server.</strong><br>
-                    Pesan error terakhir: <em>${lastErrorMessage}</em><br>
-                    Silakan pastikan API Key benar dan masih memiliki kuota harian.
+                    <strong>Gagal Terhubung ke Google!</strong><br><br>
+                    Alasan dari server Google:<br>
+                    <em class="text-red-300">${firstErrorMessage}</em><br><br>
+                    *Silakan fotokan layar ini (screenshot) dan beritahu saya pesan error kuning/merah di atas agar saya tahu penyebab pastinya.
                 </div>`;
             }
 
