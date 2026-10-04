@@ -87,11 +87,18 @@
         let apiKeys = [];
         let storyHistory = [];
 
+        // Daftar Model Terbaru sesuai dengan API Key Anda
         const allGeminiModels = [
-            'gemini-1.5-flash', 
-            'gemini-1.5-flash-latest', 
-            'gemini-1.5-pro', 
-            'gemini-1.5-pro-latest'
+            'gemini-3.8-flash',
+            'gemini-3.7-flash',
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-image',
+            'gemini-3-pro-image',
+            'gemini-2.5-flash',
+            'gemini-2.5-pro',
+            'gemini-flash-latest',
+            'gemini-pro-latest'
         ];
 
         window.onload = () => {
@@ -150,7 +157,7 @@
         async function checkApiKey() {
             if (apiKeys.length === 0) return alert("Silakan tambah API Key ke dalam daftar terlebih dahulu!");
             
-            const keyToTest = apiKeys[0]; // Test API Key pertama di daftar
+            const keyToTest = apiKeys[0]; 
             const resultText = document.getElementById('resultText');
             const outputSection = document.getElementById('outputSection');
             
@@ -170,7 +177,7 @@
                     <strong class="text-blue-400 text-lg mb-2 block">✅ API Key Anda Valid dan Aktif!</strong>
                     Model yang bisa Anda gunakan dengan Key ini:<br>
                     <ul class="list-disc ml-5 mt-2 space-y-1">${modelNames.map(m => `<li><code class="text-blue-300">${m}</code></li>`).join('')}</ul>
-                    <div class="mt-4 text-xs text-blue-400/70">*Jika ada 'models/gemini-1.5-flash', berarti siap dipakai Generate.</div>
+                    <div class="mt-4 text-xs text-blue-400/70">*Sistem sudah diperbarui! Jika daftar ini muncul, aplikasi siap untuk Generate cerita.</div>
                 </div>`;
             } catch (error) {
                 resultText.innerHTML = `<div class="p-4 bg-red-900/50 text-red-200 border border-red-800 rounded-lg text-sm shadow-md">
@@ -335,7 +342,7 @@
                     <strong>Gagal Terhubung ke Model AI!</strong><br><br>
                     Alasan dari server Google:<br>
                     <em class="text-red-300">${firstErrorMessage}</em><br><br>
-                    <strong>Saran:</strong> Coba klik tombol "Uji Key" di atas untuk memeriksa kesehatan API Key Anda.
+                    <strong>Saran:</strong> Pastikan Anda menggunakan versi API Key yang masih memiliki limit.
                 </div>`;
             }
 
